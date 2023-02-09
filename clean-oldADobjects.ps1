@@ -33,10 +33,28 @@
 $Days_Deactivate    = 90
 $Days_Remove        = 365
 
-# Specify the placeholder Organizational units for inactive objects.
+# Specify and create the placeholder Organizational Units for inactive objects if theydon't
+# exist.
 
-$Disabled_Computers_OU = "OU=Disabled Computers,$(Get-ADDomain).DistinguishedName"
-$Disabled_Users_OU = "OU=Disabled Users,$(Get-ADDomain).DistinguishedName"
+$Parent_OU              = "OU=Disabled,$((Get-ADDomain).DistinguishedName)"
+$Disabled_Computers_OU  = "OU=Computers,$Parent_OU"
+$Disabled_Users_OU      = "OU=Users,$Parent_OU"
+
+# Check for existance of top level Disabled OU and create it if it doesn't exist.
+if (![bool](Get-ADOrganizationalUnit -Filter 'DistinguishedName -like $Parent_OU')) {
+    New-ADOrganizationalUnit -Name "Disabled"
+}
+
+# Check for existance of Computers OU and create it if it doesn't exist.
+if (![bool](Get-ADOrganizationalUnit -Filter 'DistinguishedName -like $Disabled_Computers_OU')) {
+    New-ADOrganizationalUnit -Name "Computers" -Path $Parent_OU
+}
+
+# Check for existance of Users OU and create it if it doesn't exist.
+if (![bool](Get-ADOrganizationalUnit -Filter 'DistinguishedName -like $Disabled_Users_OU')) {
+    Write-Host "$Disabled_Users_OU doesn't exist."
+    New-ADOrganizationalUnit -Name "Users" -Path $Parent_OU
+}
 
 # Convert the $Days_Deactivate variable to LastLogonTimeStamp property format for the
 # -Filter switch to work.
@@ -51,21 +69,8 @@ $Inactive_Computers = Get-ADComputer -Filter {LastLogonTimeStamp -lt $Time_Inact
 
 $Inactive_Users = Get-ADUser -Filter {LastLogonTimeStamp -lt $Time_Inactive} -ResultSetSize $null -Properties Name, SamAccountName, DistinguishedName, LastLogonDate
 
-# Check for existance of needed Organizational Units in the Active Directory and create
-# them if they are not present.
-
-if (-Not(Get-ADOrganizationalUnit -Identity $Disabled_Computers_OU)){
-    # New-ADOrganizationalUnit -Name "Disabled Computers" -Path (Get-ADDomain).DistinguishedName
-    Write-Host "$Disabled_Computers_OU doesn't exist."
-}
-
-if (-Not(Get-ADOrganizationalUnit -Identity $Disabled_Users_OU)) {
-    # New-ADOrganizationalUnit -Name "Disabled Users" -Path (Get-ADDomain).DistinguishedName
-    Write-Host "$Disabled_Users_OU doesn't exist."
-}
-
-# Move and disable any $Inactive_Computers to a placeholder Organizational Unit for
-# disabled computer objects in the domain.
+# Move and disable any $Inactive_Computers to a placeholder Organizational Unit
+# for disabled computer objects in the domain.
 
 foreach ($Computer in $Inactive_Computers){
    # Disable-ADAccount -Identity $Computer.Name
