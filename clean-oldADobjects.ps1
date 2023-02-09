@@ -52,7 +52,6 @@ if (![bool](Get-ADOrganizationalUnit -Filter 'DistinguishedName -like $Disabled_
 
 # Check for existance of Users OU and create it if it doesn't exist.
 if (![bool](Get-ADOrganizationalUnit -Filter 'DistinguishedName -like $Disabled_Users_OU')) {
-    Write-Host "$Disabled_Users_OU doesn't exist."
     New-ADOrganizationalUnit -Name "Users" -Path $Parent_OU
 }
 
