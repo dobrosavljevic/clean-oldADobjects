@@ -51,12 +51,14 @@ $Inactive_Users = Get-ADUser -Filter {LastLogonTimeStamp -lt $Time_Inactive} -Re
 # Check for existance of needed Organizational Units in the Active Directory and create
 # them if they are not present.
 
-if (Get-ADOrganizationalUnit -Identity $Disabled_Computers_OU){
-    ''
+if (-Not(Get-ADOrganizationalUnit -Identity $Disabled_Computers_OU)){
+    # New-ADOrganizationalUnit -Name "Disabled Computers" -Path (Get-ADDomain).DistinguishedName
+    Write-Host "$Disabled_Computers_OU doesn't exist."
 }
 
-if (Get-ADOrganizationalUnit -Identity $Disabled_Users_OU) {
-    ''
+if (-Not(Get-ADOrganizationalUnit -Identity $Disabled_Users_OU)) {
+    # New-ADOrganizationalUnit -Name "Disabled Users" -Path (Get-ADDomain).DistinguishedName
+    Write-Host "$Disabled_Users_OU doesn't exist."
 }
 
 # Move and disable any $Inactive_Computers to a placeholder Organizational Unit for
