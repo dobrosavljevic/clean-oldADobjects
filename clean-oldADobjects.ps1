@@ -1,19 +1,22 @@
 <#
-    A script that looks through an Active Directory for objects (computers and users)
-    that haven't logged into it for more then 90 days. If any objects are found they
-    are moved to respective OUs.
+    A script that looks through an Active Directory for objects (computers and users) and
+    disables and moves them to a placeholder OU if they haven't logged into the Active Directory
+    for a predetermined amount of time (90 day suggested time frame).
 
-    If the script locates any objects that are disabled and that haven't been logged
-    into for longer then a year the script should completely remove the objects from
-    the active directory.
+    Further, if the script locates any objects inside the placeholder OUs that are disabled and
+    that haven't logged into the Active Directory for longer then a year the script
+    should permanently remove the objects from the active directory.
+
+    All of the script's actions should be logged into the domain controller's Event Log.
 
     Latest Version:
-        https://github.com
+        https://github.com/dobrosavljevic/clean-oldADobjects/blob/master/clean-oldADobjects.ps1
 
     Usage:
-        This script is inteded to be deployed with Ninja RMM to clients with a managed
-        services agreement. Alternatively it can be ran manually on servers that
-        support PowerShell.
+        This script is inteded to be deployed with Ninja RMM to domain controllers and
+        automatically executed on a regular schedule.
+        
+        Alternatively it can be ran manually on servers that support PowerShell script exectuion.
 
     License: GNU GPL2
 
@@ -21,7 +24,7 @@
     Created by Igor Dobrosavljević
 
     Version History
-        2023-02-08 Initial version
+        2023-02-08 Initial version created
 #> 
 
 # Specify the period of inactivity when objects should be considered for deactivation
