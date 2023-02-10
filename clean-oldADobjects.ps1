@@ -27,14 +27,12 @@
         2023-02-08 Initial version created
 #> 
 
-# Specify the period of inactivity when objects should be considered for deactivation
-# and removal.
+<#
+    0. In this section let's work on the placeholder Organizational Units that will hold the
+    unused objects that we are staging for removal.
+#>
 
-$Days_Deactivate    = 90
-$Days_Remove        = 365
-
-# Specify and create the placeholder Organizational Units for inactive objects if theydon't
-# exist.
+# Specify and create the OUs for inactive objects if they don't exist.
 
 $Parent_OU              = "OU=Disabled,$((Get-ADDomain).DistinguishedName)"
 $Disabled_Computers_OU  = "OU=Computers,$Parent_OU"
@@ -55,31 +53,67 @@ if (![bool](Get-ADOrganizationalUnit -Filter 'DistinguishedName -like $Disabled_
     New-ADOrganizationalUnit -Name "Users" -Path $Parent_OU
 }
 
-# Convert the $Days_Deactivate variable to LastLogonTimeStamp property format for the
+<#
+    1. Build lists of still enabled computer and user objects that have been inactive for
+    at least ninety days.
+#>
+
+# Specify the period of inactivity when objects should be considered for deactivation.
+
+$Days_Inactive = 90
+
+# Convert the $Days_Inactive variable to LastLogonTimeStamp property format for the
 # -Filter switch to work.
 
-$Time_Inactive = (Get-Date).AddDays(-($Days_Deactivate))
+$Time_Inactive = (Get-Date).AddDays(-($Days_Inactive))
 
-# Identify inactive computer accounts.
+# Identify still enabled inactive computer accounts.
 
-$Inactive_Computers = Get-ADComputer -Filter {LastLogonTimeStamp -lt $Time_Inactive} -ResultSetSize $null -Properties Name, OperatingSystem, SamAccountName, DistinguishedName, LastLogonDate
+$Inactive_Computers = Get-ADComputer -Filter {LastLogonTimeStamp -lt $Time_Inactive -and Enabled -eq $true} -ResultSetSize $null -Properties Name, OperatingSystem, SamAccountName, DistinguishedName, LastLogonDate
 
-# Identify inactive user accounts.
+# Identify still enabled inactive user accounts.
 
-$Inactive_Users = Get-ADUser -Filter {LastLogonTimeStamp -lt $Time_Inactive} -ResultSetSize $null -Properties Name, SamAccountName, DistinguishedName, LastLogonDate
+$Inactive_Users = Get-ADUser -Filter {LastLogonTimeStamp -lt $Time_Inactive -and Enabled -eq $true} -ResultSetSize $null -Properties Name, SamAccountName, DistinguishedName, LastLogonDate
 
-# Move and disable any $Inactive_Computers to a placeholder Organizational Unit
+<#
+    2. Disable and move still enabled objects that have been inactive into the corresponding
+    placeholder OUs.
+#>
+
+# Move and disable any inactive computer to the placeholder Organizational Unit
 # for disabled computer objects in the domain.
 
-foreach ($Computer in $Inactive_Computers){
-   # Disable-ADAccount -Identity $Computer.Name
-   # Move-ADObject $Computer.DistinguishedName -TargetPath $Disabled_Computers_OU
+foreach ($Computer in $Inactive_Computers) {
+   Disable-ADAccount -Identity $Computer.DistinguishedName
+   Move-ADObject -Identity $Computer.DistinguishedName -TargetPath $Disabled_Computers_OU
 }
 
-# Move and disable any $Inactive_Users to a placeholder Organizational Unit for
+# Move and disable any inactive user to the placeholder Organizational Unit for
 # disabled user objects in the domain.
 
-foreach ($User in $Inactive_Users){
-    # Disable-ADAccount -Identity $User.Name
-    # Move-ADObject $User.DistinguishedName -TargetPath $Disabled_Users_OU
+foreach ($User in $Inactive_Users) {
+    Disable-ADAccount -Identity $User.DistinguishedName
+    Move-ADObject -Identity $User.DistinguishedName -TargetPath $Disabled_Users_OU
  }
+
+<#
+    3. Delete any objects that have been inside the placeholder OUs and inactive for at least
+    one year.
+#>
+
+# Specify the period of inactivity when objects should be considered for removal.
+
+ $Days_Remove = 365
+
+# Convert the $Days_Remove variable to LastLogonTimeStamp property format for the
+# -Filter switch to work.
+
+$Time_Remove = (Get-Date).AddDays(-($Days_Remove))
+
+# Enumerate all disabled computer accounts inside the placeholder OUs.
+
+$Disabled_Computers = Get-ADComputer -Filter {LastLogonTimeStamp -lt $Time_Remove -and DistinguishedName -eq 'CN=($Disabled_Computers).Name,$Disabled_Computers_OU'} -ResultSetSize $null -Properties Name, OperatingSystem, SamAccountName, DistinguishedName, LastLogonDate
+
+# Enumerate all disabled computer accoutns inside the placeholder OUs.
+
+$Disabled_Users = Get-ADUser -Filter {LastLogonTimeStamp -lt $Time_Remove -and DistinguishedName -eq 'CN=($Disabled_Users).Name,$Disabled_Users_OU'} -ResultSetSize $null -Properties Name, SamAccountName, DistinguishedName, LastLogonDate
