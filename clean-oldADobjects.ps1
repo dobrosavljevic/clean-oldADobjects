@@ -122,8 +122,10 @@ $Disabled_Users = Get-ADUser -Filter {LastLogonTimeStamp -lt $Time_Remove -and E
 # timeframe and are found in the placeholder OUs.
 
 foreach ($Disabled_Computer in $Disabled_Computers) {
-    if (($Disabled_Computer).DistinguishedName -eq "CN=($Disabled_Computer).Name,$Disabled_Computers_OU") {
-        $Disabled_Computer
+    # Remove only disabled computers that are inside our placeholder OUs.
+    
+    if ($($Disabled_Computer.DistinguishedName) -eq "CN=$($Disabled_Computer.Name),$($Disabled_Computers_OU)") {
+        Remove-ADComputer $Disabled_Computer
     }
 }
 
@@ -131,7 +133,9 @@ foreach ($Disabled_Computer in $Disabled_Computers) {
 # timeframe and are found in the placeholder OUs.
 
 foreach ($Disabled_User in $Disabled_Users) {
-    if (($Disabled_User).DistinguishedName -eq "CN=($Disabled_User).Name,$Disabled_User_OU") {
-        $Disabled_User
+    # Remove only disabled users that are inside our placeholder OUs.
+
+    if ($($Disabled_User.DistinguishedName) -eq "CN=$($Disabled_User.Name),$($Disabled_Users_OU)") {
+        Remove-ADUser $Disabled_User
     }
 }
