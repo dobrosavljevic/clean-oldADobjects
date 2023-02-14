@@ -7,10 +7,12 @@
     that haven't logged into the Active Directory for longer then a year the script
     should permanently remove the objects from the active directory.
 
-    All of the script's actions should be logged into the domain controller's Event Log.
-
     Latest Version:
         https://github.com/dobrosavljevic/clean-oldADobjects/blob/master/clean-oldADobjects.ps1
+
+    Future features:
+        All of the script's destructive actions should be logged into the domain controller's
+        Event Log.
 
     Usage:
         This script is inteded to be deployed with Ninja RMM to domain controllers and
@@ -84,16 +86,16 @@ $Inactive_Users = Get-ADUser -Filter {LastLogonTimeStamp -lt $Time_Inactive -and
 # for disabled computer objects in the domain.
 
 foreach ($Computer in $Inactive_Computers) {
-   Disable-ADAccount -Identity $Computer.DistinguishedName
-   Move-ADObject -Identity $Computer.DistinguishedName -TargetPath $Disabled_Computers_OU
+   Disable-ADAccount $Computer
+   Move-ADObject $Computer -TargetPath $Disabled_Computers_OU
 }
 
 # Move and disable any inactive user to the placeholder Organizational Unit for
 # disabled user objects in the domain.
 
 foreach ($User in $Inactive_Users) {
-    Disable-ADAccount -Identity $User.DistinguishedName
-    Move-ADObject -Identity $User.DistinguishedName -TargetPath $Disabled_Users_OU
+    Disable-ADAccount $User
+    Move-ADObject $User -TargetPath $Disabled_Users_OU
  }
 
 <#
@@ -125,7 +127,7 @@ foreach ($Disabled_Computer in $Disabled_Computers) {
     # Remove only disabled computers that are inside our placeholder OUs.
     
     if ($($Disabled_Computer.DistinguishedName) -eq "CN=$($Disabled_Computer.Name),$($Disabled_Computers_OU)") {
-        Remove-ADComputer $Disabled_Computer
+        Remove-ADObject $Disabled_Computer -Recursive -Confirm:$false
     }
 }
 
@@ -136,6 +138,6 @@ foreach ($Disabled_User in $Disabled_Users) {
     # Remove only disabled users that are inside our placeholder OUs.
 
     if ($($Disabled_User.DistinguishedName) -eq "CN=$($Disabled_User.Name),$($Disabled_Users_OU)") {
-        Remove-ADUser $Disabled_User
+        Remove-ADObject $Disabled_User -Recursive -Confirm:$false
     }
 }
