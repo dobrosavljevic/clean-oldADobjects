@@ -116,10 +116,6 @@ $Time_Remove = (Get-Date).AddDays(-($Days_Remove))
 
 $Disabled_Computers = Get-ADComputer -Filter {LastLogonTimeStamp -lt $Time_Remove -and Enabled -eq $false} -ResultSetSize $null -Properties Name, OperatingSystem, SamAccountName, DistinguishedName, LastLogonDate
 
-# Enumerate all disabled user accoutns that haven't logged into the domain in the set timeframe.
-
-$Disabled_Users = Get-ADUser -Filter {LastLogonTimeStamp -lt $Time_Remove -and Enabled -eq $false} -ResultSetSize $null -Properties Name, SamAccountName, DistinguishedName, LastLogonDate
-
 # DESTRUCTIVE ACTION: Remove all computer accounts that haven't logged into the domain in the given
 # timeframe and are found in the placeholder OUs.
 
@@ -130,6 +126,10 @@ foreach ($Disabled_Computer in $Disabled_Computers) {
         Remove-ADObject $Disabled_Computer -Recursive -Confirm:$false
     }
 }
+
+# Enumerate all disabled user accoutns that haven't logged into the domain in the set timeframe.
+
+$Disabled_Users = Get-ADUser -Filter {LastLogonTimeStamp -lt $Time_Remove -and Enabled -eq $false} -ResultSetSize $null -Properties Name, SamAccountName, DistinguishedName, LastLogonDate
 
 # DESTRUCTIVE ACTION: Remove all user accounts that haven't logged into the domain in the given
 # timeframe and are found in the placeholder OUs.
